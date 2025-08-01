@@ -3,7 +3,7 @@ const std = @import("std");
 pub fn ObjectPool(comptime T: type) type {
     return struct {
         arr: std.ArrayList(T),
-        active_items: std.ArrayList(*T),
+        active_items: std.ArrayList(usize),
         free_items: std.ArrayList(usize),
         constructor: *const fn () T,
         enabler: *const fn (this: *T) void,
@@ -18,7 +18,7 @@ pub fn ObjectPool(comptime T: type) type {
         ) !@This() {
             var arr = try std.ArrayList(T).initCapacity(allocator, default_len);
             var frees = try std.ArrayList(usize).initCapacity(allocator, default_len);
-            const actives = std.ArrayList(*T).init(allocator);
+            const actives = std.ArrayList(usize).init(allocator);
 
             for (0..default_len) |_| {
                 arr.appendAssumeCapacity(con());
@@ -49,14 +49,14 @@ pub fn ObjectPool(comptime T: type) type {
                 // Reuse a previously freed object
                 const index: usize = this.free_items.pop() orelse unreachable;
                 const item = &this.arr.items[index];
-                try this.active_items.append(item);
+                try this.active_items.append(index);
                 this.enabler(item);
                 return item;
             } else {
                 // Add a new object to the pool
                 try this.arr.append(this.constructor());
                 const item = &this.arr.items[this.arr.items.len - 1];
-                try this.active_items.append(item);
+                try this.active_items.append(this.arr.items.len - 1);
                 this.enabler(item);
                 return item;
             }
@@ -69,11 +69,11 @@ pub fn ObjectPool(comptime T: type) type {
             const idx = index / element_size;
             try this.free_items.append(idx);
             this.disabler(obj);
-            const active_idx = findIndex(this.active_items.items, obj) orelse unreachable;
+            const active_idx = findIndex(usize, this.active_items.items, idx) orelse unreachable;
             _ = this.active_items.orderedRemove(active_idx);
         }
 
-        fn findIndex(slice: []const *T, value: *T) ?usize {
+        fn findIndex(comptime Ta: type, slice: []const Ta, value: Ta) ?usize {
             for (slice, 0..) |v, i| {
                 if (v == value) return i;
             }

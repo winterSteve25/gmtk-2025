@@ -23,6 +23,8 @@ pub const Bullet = struct {
     }
 
     pub fn enable(this: *Bullet) void {
+        this.life_time = 0;
+        this.delete = false;
         this.enabled = true;
     }
 
@@ -71,8 +73,10 @@ pub const Camera = struct {
 pub const Player = struct {
     position: rl.Vector2 = .{ .x = 0, .y = 0 },
     camera: *const Camera,
+    shoot_cooldown: f32 = max_shoot_cooldown,
 
     const player_speed: f32 = 180;
+    const max_shoot_cooldown: f32 = 0.5;
 
     pub fn draw(p: *const Player) void {
         rl.drawCircleV(p.position, 10, rl.Color.white);
@@ -81,7 +85,10 @@ pub const Player = struct {
     pub fn update(p: *Player, bullets: *ObjectPool(Bullet)) void {
         update_movement(p);
 
+        p.shoot_cooldown += rl.getFrameTime();
         if (rl.isMouseButtonDown(.left)) {
+            p.shoot_cooldown = 0;
+
             const bullet = bullets.get() catch unreachable;
             bullet.position = p.position;
             bullet.direction = rl.getScreenToWorld2D(rl.getMousePosition(), p.camera.cam)

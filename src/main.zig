@@ -13,7 +13,7 @@ pub fn main() !void {
 
     var bullets = try ObjectPool(player.Bullet).init(
         std.heap.page_allocator,
-        40,
+        3,
         player.Bullet.new,
         player.Bullet.enable,
         player.Bullet.disable,
@@ -57,11 +57,14 @@ pub fn main() !void {
         // bullets
         var i: usize = 0;
         while (i < bullets.active_items.items.len) {
-            player.Bullet.update(bullets.active_items.items[i], &zones);
-            bullets.active_items.items[i].draw();
+            var bullet: *player.Bullet = &bullets.arr.items[bullets.active_items.items[i]];
 
-            if (bullets.active_items.items[i].delete) {
-                try bullets.free(bullets.active_items.items[i]);
+            std.log.debug("{}", .{bullet.*});
+            player.Bullet.update(bullet, &zones);
+            bullet.draw();
+
+            if (bullet.delete) {
+                try bullets.free(bullet);
             } else {
                 i += 1;
             }
