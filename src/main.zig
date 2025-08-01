@@ -10,6 +10,10 @@ pub fn main() !void {
 
     var zones = std.ArrayList(Zone).init(std.heap.page_allocator);
     defer zones.deinit();
+    try zones.append(.{
+        .position = .init(0, 0),
+        .radius = 250,
+    });
 
     var bullets = try ObjectPool(player.Bullet).init(
         std.heap.page_allocator,
@@ -19,11 +23,6 @@ pub fn main() !void {
         player.Bullet.disable,
     );
     defer bullets.deinit();
-
-    try zones.append(.{
-        .position = .init(0, 0),
-        .radius = 250,
-    });
 
     var c = player.Camera{
         .target = undefined,
@@ -36,6 +35,8 @@ pub fn main() !void {
     };
     var p = player.Player{ .camera = &c };
     c.target = &p.position;
+
+    const bulletClipShader = try rl.loadShader("resources/bullet.glsl.vs", "bullet.glsl.fs");
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -58,10 +59,11 @@ pub fn main() !void {
         var i: usize = 0;
         while (i < bullets.active_items.items.len) {
             var bullet: *player.Bullet = &bullets.arr.items[bullets.active_items.items[i]];
-
-            std.log.debug("{}", .{bullet.*});
             player.Bullet.update(bullet, &zones);
+
+            rl.beginShaderMode(bulletClipShader);
             bullet.draw();
+            rl.endShaderMode();
 
             if (bullet.delete) {
                 try bullets.free(bullet);
