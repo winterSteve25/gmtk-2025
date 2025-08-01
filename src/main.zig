@@ -4,6 +4,7 @@ const Zones = @import("zones.zig").ZonesArray;
 const std = @import("std");
 const ObjectPool = @import("utils.zig").ObjectPool;
 const collision = @import("collision.zig");
+const Bullet = @import("bullet.zig").Bullet;
 
 pub fn main() !void {
     rl.setConfigFlags(.{ .vsync_hint = true, .window_resizable = true });
@@ -14,12 +15,12 @@ pub fn main() !void {
     defer zones.deinit();
     try zones.append(.init(0, 0), 250);
 
-    var bullets = try ObjectPool(player.Bullet).init(
+    var bullets = try ObjectPool(Bullet).init(
         std.heap.page_allocator,
         3,
-        player.Bullet.new,
-        player.Bullet.enable,
-        player.Bullet.disable,
+        Bullet.new,
+        Bullet.enable,
+        Bullet.disable,
     );
     defer bullets.deinit();
 
@@ -64,8 +65,8 @@ pub fn main() !void {
         // bullets
         var i: usize = 0;
         while (i < bullets.active_items.items.len) {
-            var bullet: *player.Bullet = &bullets.arr.items[bullets.active_items.items[i]];
-            player.Bullet.update(bullet, &zones.arr, &collidingEntities);
+            var bullet: *Bullet = &bullets.arr.items[bullets.active_items.items[i]];
+            Bullet.update(bullet, &zones.arr, &collidingEntities);
 
             rl.beginShaderMode(bulletClipShader);
             bullet.draw();
