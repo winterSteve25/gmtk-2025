@@ -3,6 +3,8 @@ const collision = @import("collision.zig");
 const std = @import("std");
 const math = std.math;
 const Zone = @import("zones.zig").Zone;
+const enemies = @import("enemies/enemy.zig");
+const Player = @import("player.zig").Player;
 
 pub const Bullet = struct {
     rectangle: rl.Rectangle,
@@ -14,7 +16,7 @@ pub const Bullet = struct {
     enabled: bool = false,
 
     const max_lifetime = 6;
-    const max_speed = 150;
+    const max_speed = 300;
 
     pub fn new() Bullet {
         var tracker = collision.RectCollisionTracker.new(std.heap.page_allocator);
@@ -24,8 +26,8 @@ pub const Bullet = struct {
             .rectangle = .{
                 .x = 0,
                 .y = 0,
-                .width = 3,
-                .height = 8,
+                .width = 6,
+                .height = 10,
             },
             .tracker = tracker,
             .direction = .init(0, 0),
@@ -55,7 +57,7 @@ pub const Bullet = struct {
         };
     }
 
-    pub fn update(this: *Bullet, zones: *std.ArrayList(Zone), collidables: *std.ArrayList(*collision.CollidableEntity)) void {
+    pub fn update(this: *Bullet, zones: *std.ArrayList(Zone), entities: *enemies.EnemySpawner, player: *Player) void {
         const speed = this.speed * rl.getFrameTime();
         const movement = this.direction.multiply(.init(speed, speed));
         this.set_position(this.get_position().add(movement));
@@ -77,7 +79,7 @@ pub const Bullet = struct {
         }
 
         // collision
-        this.tracker.update(this.rectangle, collidables);
+        this.tracker.update(this.rectangle, entities, player);
     }
 
     pub fn draw(this: Bullet) void {
@@ -91,7 +93,7 @@ pub const Bullet = struct {
         rl.drawEllipse(@intFromFloat(this.rectangle.x), @intFromFloat(this.rectangle.y), this.rectangle.width, this.rectangle.height, .red);
     }
 
-    fn collided_with(entity: *collision.CollidableEntity) void {
-        entity.hp -= 1;
+    fn collided_with(entity: *collision.Entity) void {
+        entity.hit(1);
     }
 };
